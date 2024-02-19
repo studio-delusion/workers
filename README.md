@@ -5,12 +5,12 @@ workers is a Roblox library for code parallization through the use of Actors.
 # Usage
 
 > [!NOTE]
-> In Luau, threads are coroutines. Coroutines are executed serially by a single CPU core, as opposed to "real" threads, which have the ability to run on different CPU cores.
+> In Luau, threads are coroutines. Coroutines are executed serially by a single CPU core, as opposed to "real" threads, which have the ability to run on different CPU cores.\
 > Therefore, any references to threads are references to "real" threads.
 
 > [!CAUTION]
-> Be smart about what you parallelize. More ofter than not it'll lead to worse results than doing it normally.
-> If you think something is gonna benefit from splitting it across threads, first benchmark it.
+> Be smart about what you parallelize. More ofter than not it'll lead to worse results than doing it normally.\
+> If you think something is gonna benefit from splitting it across threads, first benchmark it.\
 > Read [this article by Roblox](https://create.roblox.com/docs/scripting/multithreading) before parallelizing your code.
 
 ## Workers
@@ -78,7 +78,7 @@ local ok, result = worker:join()
 ```
 
 > [!WARNING]
-> `worker:join()` will yield until the worker finishes running.
+> `worker:join()` will yield until the worker finishes running.\
 > You can prevent this by disallowing the worker from attempting to join more than once:
 > ```lua
 > local ok, result = worker:join(1)
