@@ -74,7 +74,7 @@ end
 --[=[
 	Attempts to join the worker back into serial execution.
 
-	Passing `0` into `attempts` will cause the function to not wait for the worker to finish running.\
+	Passing `0` or `1` into `attempts` will cause the function to not wait for the worker to finish running.\
 	Not passing anything into `attempts` will cause the function to infinitely wait for the worker to finish running.
 	
 	@param attempts number?

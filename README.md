@@ -13,6 +13,8 @@ workers is a Roblox library for code parallization through the use of Actors.
 > If you think something is gonna benefit from splitting it across threads, first benchmark it.
 > Read [this article by Roblox](https://create.roblox.com/docs/scripting/multithreading) before parallelizing your code.
 
+## Workers
+
 In order to create a worker, you first need to create a ModuleScript which will house the code you wish to run multithreaded.
 ```lua
 -- hello.luau
@@ -79,6 +81,60 @@ local ok, result = worker:join()
 > `worker:join()` will yield until the worker finishes running.
 > You can prevent this by disallowing the worker from attempting to join more than once:
 > ```lua
-local ok, result = worker:join(0)
+> local ok, result = worker:join(1)
 > ```
-> 
+> or by giving it a certain amount of attempts it can perform before failing:
+> ```lua
+> local ok, result = worker:join(5)
+> ```
+
+## Pools
+
+Pools work roughly the same as workers, except with a few extra features.
+
+You create a ModuleScript
+```lua
+-- add.luau
+local Add = {}
+Add.Index = 0 -- The index of the worker in the pool, the worker will automatically set the `Index` behind the curtains, therefore you can make it any number you want in the module
+
+function Add.run(a: number, b: number): number
+    return a + b
+end
+
+return Add
+```
+
+Bind it to a pool
+```lua
+local pool = Workers.pool(10, add) -- Creates a pool bound to the ModuleScript `add` with 10 workers
+```
+
+Run the pool
+```lua
+pool:run(2, 2)
+```
+
+And get return values from the pool
+```lua
+local ok = pool:join()
+if not ok then return end
+
+local ok, result = pool:get_result(1)
+```
+You might have noticed that we joined the pool and called another function with a number.\
+This is because in the case of pools, `join()` joins all workers back into serial execution **without** returning the results.\
+Therefore we fetch the results with `get_results()` and the index of the worker whose results we want.
+
+Though, do note that you can simply join the nth worker from the pool you want, and instantly get it's result.
+```lua
+local ok, result = pool:join_nth(1)
+```
+
+## Cleaning up
+
+You can clean up workers and pools by calling `:destroy()` on them.
+```lua
+worker:destroy()
+pool:destroy()
+```

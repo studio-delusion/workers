@@ -6,9 +6,11 @@ type PoolImpl<T...> = {
 	new: (workers: { Worker.Worker<T...> }?) -> Pool<T...>,
 	run: (self: Pool<T...>, T...) -> boolean,
 	join: (self: Pool<T...>, attempts: number?) -> boolean,
+	join_nth: (self: Pool<T...>, index: number, attempts: number) -> (boolean, T...),
 	get_result: (self: Pool<T...>, index: number) -> (boolean, T...),
-	is_running: (self: Pool<T...>) -> boolean,
+	is_not_suspended: (self: Pool<T...>) -> boolean,
 	size: (self: Pool<T...>) -> number,
+	destroy: (self: Pool<T...>) -> boolean,
 }
 
 type PoolProps<T...> = {
@@ -42,7 +44,7 @@ end
     @return boolean -- Did all workers start running?
 ]=]
 function Pool.run<T...>(self: Pool<T...>, ...: T...): boolean
-	if self:is_running() then
+	if self:is_not_suspended() then
 		return false
 	end
 
@@ -56,7 +58,7 @@ end
 --[=[
 	Attempts to join all workers in the pool back into serial execution.
 
-	Passing `0` into `attempts` will cause the function to not wait for the worker to finish running.\
+	Passing any number below 2 into `attempts` will cause the function to not wait for the worker to finish running.\
 	Not passing anything into `attempts` will cause the function to infinitely wait for the worker to finish running.
 	
 	@param attempts number?
@@ -76,6 +78,34 @@ function Pool.join<T...>(self: Pool<T...>, attempts: number?): boolean
 end
 
 --[=[
+	Attempts to join the worker in the pool with the given index back into serial execution.
+
+	Passing any number below 2 into `attempts` will cause the function to not wait for the worker to finish running.\
+	Not passing anything into `attempts` will cause the function to infinitely wait for the worker to finish running.
+
+	@param index number
+	@param attempts number?
+	@return boolean, T... -- Did we successfully join the worker, and if so, the result.
+]=]
+function Pool.join_nth<T...>(self: Pool<T...>, index: number, attempts: number?): (boolean, T...)
+	local worker = self.workers[index]
+	if not worker then
+		return false
+	end
+
+	local result = table.pack(worker:join(attempts))
+	self.results[worker.id] = result
+
+	if not result[1] then
+		return false
+	end
+
+	local clone = Util.deep_clone(result)
+
+	return clone :: any
+end
+
+--[=[
     Gets the result of the worker with the given index.
 
     @param index number
@@ -87,17 +117,19 @@ function Pool.get_result<T...>(self: Pool<T...>, index: number): (boolean, T...)
 		return false
 	end
 
-	return table.unpack(result) :: any
+	local clone = Util.deep_clone(result)
+
+	return table.unpack(clone) :: any
 end
 
 --[=[
-    Checks whether any worker in the thread is running.
+    Checks whether any worker in the thread isn't suspended.
 
     @return boolean
 ]=]
-function Pool.is_running<T...>(self: Pool<T...>): boolean
+function Pool.is_not_suspended<T...>(self: Pool<T...>): boolean
 	for _, worker in self.workers do
-		if worker:status() == "running" then
+		if worker:status() ~= "suspended" then
 			return true
 		end
 	end
@@ -111,6 +143,27 @@ end
 ]=]
 function Pool.size<T...>(self: Pool<T...>): number
 	return #self.workers
+end
+
+--[=[
+	Attempts to destroy all of the pool's workers and clean up their used memory.
+
+	The function will return false if any of the workers aren't in the `suspended` state.
+
+	If necessary, simply use `pool:join()` to wait until all workers finish running and are back to the `suspended` state.
+
+	@return boolean
+]=]
+function Pool.destroy<T...>(self: Pool<T...>): boolean
+	if self:is_not_suspended() then
+		return false
+	end
+
+	for _, worker in self.workers do
+		worker:destroy()
+	end
+
+	return true
 end
 
 return Pool
