@@ -2,13 +2,13 @@ local SharedTableRegistry = game:GetService("SharedTableRegistry")
 
 local Util = require(script.Parent.util)
 
-type WorkerImpl<T...> = {
-	__index: WorkerImpl<T...>,
-	new: (actor: Actor, worker: ModuleScript, index: number?) -> Worker<T...>,
-	run: (self: Worker<T...>, T...) -> boolean,
-	join: (self: Worker<T...>, attempts: number?) -> (boolean, T...),
-	destroy: (self: Worker<T...>) -> boolean,
-	status: (self: Worker<T...>) -> Status,
+type WorkerImpl<T..., R...> = {
+	__index: WorkerImpl<T..., R...>,
+	new: (actor: Actor, worker: ModuleScript, index: number?) -> Worker<T..., R...>,
+	run: (self: Worker<T..., R...>, T...) -> boolean,
+	join: (self: Worker<T..., R...>, attempts: number?) -> (boolean, R...),
+	destroy: (self: Worker<T..., R...>) -> boolean,
+	status: (self: Worker<T..., R...>) -> Status,
 }
 
 type WorkerProps = {
@@ -17,7 +17,7 @@ type WorkerProps = {
 	id: number,
 }
 
-export type Worker<T...> = typeof(setmetatable({} :: WorkerProps, {} :: WorkerImpl<T...>))
+export type Worker<T..., R...> = typeof(setmetatable({} :: WorkerProps, {} :: WorkerImpl<T..., R...>))
 
 local NextId = 1
 
@@ -30,7 +30,7 @@ SharedTableRegistry:SetSharedTable("WorkerReturns", WorkerReturns)
 local Worker = {}
 Worker.__index = Worker
 
-function Worker.new<T...>(actor: Actor, worker: ModuleScript, index: number?): Worker<T...>
+function Worker.new<T..., R...>(actor: Actor, worker: ModuleScript, index: number?): Worker<T..., R...>
 	local self = {} :: WorkerProps
 	self.actor = actor
 	self.index = index
@@ -57,7 +57,7 @@ end
 	@param T... -- Arguments
 	@return boolean
 ]=]
-function Worker.run<T...>(self: Worker<T...>, ...: T...): boolean
+function Worker.run<T..., R...>(self: Worker<T..., R...>, ...: T...): boolean
 	repeat
 		task.wait()
 	until self:status() ~= "new"
@@ -80,7 +80,7 @@ end
 	@param attempts number?
 	@return number, T... -- Did we successfully get the result, and if so, the result.
 ]=]
-function Worker.join<T...>(self: Worker<T...>, attempts: number?): (boolean, T...)
+function Worker.join<T..., R...>(self: Worker<T..., R...>, attempts: number?): (boolean, R...)
 	local attempt = 0
 	while self:status() ~= "suspended" do
 		attempt += 1
@@ -103,7 +103,7 @@ end
 
 	@return boolean
 ]=]
-function Worker.destroy<T...>(self: Worker<T...>): boolean
+function Worker.destroy<T..., R...>(self: Worker<T..., R...>): boolean
 	if self:status() ~= "suspended" then
 		return false
 	end
@@ -125,7 +125,7 @@ type Status = "new" | "suspended" | "running"
 
 	@return Status
 ]=]
-function Worker.status<T...>(self: Worker<T...>): Status
+function Worker.status<T..., R...>(self: Worker<T..., R...>): Status
 	local status = WorkerStatuses[self.id]
 	return status
 end

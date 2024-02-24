@@ -2,8 +2,8 @@ local Worker = require(script.worker)
 local Pool = require(script.pool)
 local Initializer = require(script.initializer)
 
-export type Worker<T...> = Worker.Worker<T...>
-export type Pool<T...> = Pool.Pool<T...>
+export type Worker<T..., R...> = Worker.Worker<T..., R...>
+export type Pool<T..., R...> = Pool.Pool<T..., R...>
 
 local function make_actor(parent: Instance): Actor
 	local actor = Instance.new("Actor")
